@@ -1,15 +1,51 @@
+from logging import shutdown
 import threading
-import time
+import time, os, subprocess
 
 from http.server import BaseHTTPRequestHandler, HTTPServer, ThreadingHTTPServer
 from time import sleep
 import cgi
 import sys, signal
+import readchar
+
+def sigterm(a, b):
+    print('xxx')
+    webServer.shutdown()
+    sys.exit(0)
+
+signal.signal(signal.SIGTERM, sigterm)
+signal.signal(signal.SIGINT, sigterm)
+
+
+
+#import rpy2.robjects
+#.robjects as robjects
+# r = robjects.r
+#robjects = rpy2.robjects
+if not 'R_HOME' in os.environ:
+    rhome = subprocess.check_output(['r', 'RHOME'], shell=False, stderr=subprocess.PIPE)
+    print('R_HOME <- %s' % (rhome.decode('UTF-8')))
+    os.environ['R_HOME'] = rhome.decode('UTF-8')
+
+import rpy2.robjects as robjects
+
+# def threadFunc():
+#     x = robjects.IntVector(range(10))
+#     y = robjects.r.rnorm(10)
+#     for i in range(100):
+#         print(f'Hello from new Thread {x} {y}')
+#         time.sleep(1)
+#     webServer.shutdown()
+#     sys.exit(0)
+# th = threading.Thread(target=threadFunc, daemon=True)
+# th.start()
+
 
 class WebServer(threading.Thread):
     def __init__(self):
         super().__init__()
-        self.host = "localhost"
+        self.running = True
+        self.host = "127.0.0.1"
         self.port = 8080
         self.ws = ThreadingHTTPServer((self.host, self.port), MyHandler)
 
@@ -29,29 +65,36 @@ class WebServer(threading.Thread):
         self.ws.server_close()
         print('Closing thread.')
         self.join()
+        print('Closed thread.')
+        self.running = False
 
 
 class MyHandler(BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path == '/favicon.ico':
+            self.send_response(404)
+            self.send_header("Content-type", "image/x-icon")
+            self.end_headers()
+            return
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         self.end_headers()
-        self.wfile.write(bytes("<html><head><title>Title</title></head>", "utf-8"))
-        self.wfile.write(bytes("<p>Request: %s</p>" % self.path, "utf-8"))
-        self.wfile.write(bytes("<body>", "utf-8"))
-        self.wfile.write(bytes("<p>This is an example web server.</p>", "utf-8"))
-        self.wfile.write(bytes("""
-<form action="/post" method="POST">
-  <div>
-    <label for="code">What code to say?</label>
-    <input name="code" id="code" value="pi">
-  </div>
-  <div>
-    <button>Send code</button>
-  </div>
-</form>""", "utf-8"))
+        self.print_body("pi")
+
+    def print_body(self, code, ret = ""):
+        self.wfile.write(bytes("<html><body><h1>POST Request Received!</h1>", "utf-8"))
+        self.wfile.write(bytes(f"""
+        <form action="/r" method="POST">
+        <div>
+            <label for="code">Code:</label><br>
+            <textarea name="code" id="code" value="{code}" rows="10" cols="80" style="padding: 1rem; width: 100%; resize: vertical; min-height:3rem; max-height:100rem;">{code}</textarea>
+        </div>
+        <div>
+            <button>Run code</button>
+        </div>
+        </form>""", "utf-8"))
+        self.wfile.write(bytes(f'''<pre>code:</pre><pre style="border:1px solid blue; padding:1rem;">{ret}</pre>''', "utf-8"))
         self.wfile.write(bytes("</body></html>", "utf-8"))
-        print(self.path)
 
     def do_POST(self):
         try:
@@ -64,28 +107,37 @@ class MyHandler(BaseHTTPRequestHandler):
                 environ={'REQUEST_METHOD': 'POST'}
             )
             print(form.getvalue("code"))
-            self.wfile.write("<html><body><h1>POST Request Received!</h1></body></html>")
+            code = form.getvalue("code")
         except:
             print(sys.exc_info()[1])
+        code2='rt(1,1)'
+        code=code.replace('\r', '')
+        try:
+            ret = robjects.r(code)
+            print('ret={}'.format(ret))
+        except:
+            print("r: '{}' => {}".format(code, sys.exc_info()[1]))
+            ret = "???"
+        self.print_body(code, ret)
 
 
-def sigterm(a, b):
-    print('KILL')
-    webServer.shutdown()
-    print('K2')
-    sys.exit(0)
 
 
 if __name__=='__main__':
-    signal.signal(signal.SIGTERM, sigterm)
-    signal.signal(signal.SIGINT, sigterm)
     webServer = WebServer()
     webServer.start()
-    while True:
+    while webServer.running:
+        r = readchar.readchar()
+        print(r)
+        if r == b'q' or r == b'\x03':
+            print('!!!!!!!!!!!')
+            webServer.shutdown()
         try:
-            sleep(1)
+            sleep(0.1)
+            #print('.')
         except KeyboardInterrupt:
-            pass
+            print('Ctrl+C')
+            webServer.shutdown()
 
         #print('Keyboard Interrupt sent.')
         #webServer.shutdown()

@@ -18,7 +18,14 @@ if not 'R_HOME' in os.environ:
     print('R_HOME <- %s' % (rhome.decode('UTF-8')))
     os.environ['R_HOME'] = rhome.decode('UTF-8')
 
-import rpy2.robjects as robjects
+
+
+
+#grdevices.png(file="path/to/file.png", width=512, height=512)
+#grdevices.png(file="path/to/file.png", width=512, height=512)
+#grdevices.svg(file="plot_%03d.svg")
+# plotting code here
+#grdevices.dev_off()
 
 # def threadFunc():
 #     x = robjects.IntVector(range(10))
@@ -35,6 +42,7 @@ from multiprocessing import Process, Queue
 
 
 def test2(q):
+    import rpy2.robjects as robjects
     x = robjects.r('rt(1,1)\n')
     print(x)
     x = robjects.r('''
@@ -51,8 +59,12 @@ def test2(q):
     time.sleep(15)
 
 def rlang_proc(q):
+    import rpy2.robjects as robjects
+    from rpy2.robjects.packages import importr
+    grdevices = importr('grDevices')
     while True:
         code=q.get()
+        grdevices.svg(file="plot_%03d.svg")
         try:
             ret = robjects.r(code)
             print('ret={}'.format(ret))
@@ -60,6 +72,10 @@ def rlang_proc(q):
             print("r: '{}' => {}".format(code, sys.exc_info()[1]))
             ret = "???"
         q.put(ret)
+        #try:
+        grdevices.dev_off()
+        #except:
+        #    print("{}".format(sys.exc_info()[1]))
 
 q = Queue()
 p = Process(target=rlang_proc, args=(q,))

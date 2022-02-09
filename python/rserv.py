@@ -38,6 +38,8 @@ if not 'R_HOME' in os.environ:
 # th = threading.Thread(target=threadFunc, daemon=True)
 # th.start()
 
+import multiprocessing
+
 from multiprocessing import Process, Queue
 
 
@@ -62,6 +64,7 @@ def rlang_proc(q):
     import rpy2.robjects as robjects
     from rpy2.robjects.packages import importr
     grdevices = importr('grDevices')
+    print('rlang initialized, waiting for jobs...')
     while True:
         code=q.get()
         grdevices.svg(file="plot_%03d.svg")
@@ -172,6 +175,9 @@ signal.signal(signal.SIGINT, sigterm)
 
 
 if __name__=='__main__':
+    if sys.platform.startswith('win'):
+        # On Windows calling this function is necessary.
+        multiprocessing.freeze_support()
     webServer = WebServer()
     webServer.start()
 

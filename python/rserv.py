@@ -8,15 +8,6 @@ import cgi
 import sys, signal
 import readchar
 
-def sigterm(a, b):
-    print('xxx')
-    webServer.shutdown()
-    sys.exit(0)
-
-signal.signal(signal.SIGTERM, sigterm)
-signal.signal(signal.SIGINT, sigterm)
-
-
 
 #import rpy2.robjects
 #.robjects as robjects
@@ -40,6 +31,42 @@ import rpy2.robjects as robjects
 # th = threading.Thread(target=threadFunc, daemon=True)
 # th.start()
 
+from multiprocessing import Process, Queue
+
+
+def test2(q):
+    x = robjects.r('rt(1,1)\n')
+    print(x)
+    x = robjects.r('''
+        rt(1,1)
+        library('dfphase1')
+        set.seed(12345)
+        y <- matrix(rt(100,3),5)
+        y[,20] <- y[,20]+3
+        y[,2] <- y[,2]-2
+        shewhart(y)
+        #plot(cars)
+        #quit("no")
+''')
+    time.sleep(15)
+
+def rlang_proc(q):
+    while True:
+        code=q.get()
+        try:
+            ret = robjects.r(code)
+            print('ret={}'.format(ret))
+        except:
+            print("r: '{}' => {}".format(code, sys.exc_info()[1]))
+            ret = "???"
+        q.put(ret)
+
+q = Queue()
+p = Process(target=rlang_proc, args=(q,))
+
+#test2()
+#th = threading.Thread(target=test2, daemon=True)
+#th.start()
 
 class WebServer(threading.Thread):
     def __init__(self):
@@ -57,16 +84,16 @@ class WebServer(threading.Thread):
         # set the two flags needed to shutdown the HTTP server manually
         self.ws._BaseServer__is_shut_down.set()
         self.ws.__shutdown_request = True
-
         print('Shutting down server.')
         # call it anyway, for good measure...
         self.ws.shutdown()
         print('Closing server.')
         self.ws.server_close()
         print('Closing thread.')
-        self.join()
+        self.join(timeout=3)
         print('Closed thread.')
         self.running = False
+
 
 
 class MyHandler(BaseHTTPRequestHandler):
@@ -110,31 +137,39 @@ class MyHandler(BaseHTTPRequestHandler):
             code = form.getvalue("code")
         except:
             print(sys.exc_info()[1])
-        code2='rt(1,1)'
         code=code.replace('\r', '')
-        try:
-            ret = robjects.r(code)
-            print('ret={}'.format(ret))
-        except:
-            print("r: '{}' => {}".format(code, sys.exc_info()[1]))
-            ret = "???"
+        q.put(code)
+        ret = q.get()
+        print(ret)
+
         self.print_body(code, ret)
 
 
+def sigterm(a, b):
+    webServer.shutdown()
+    p.join(timeout = 1)
+    p.terminate()
+    sys.exit(0)
+
+signal.signal(signal.SIGTERM, sigterm)
+signal.signal(signal.SIGINT, sigterm)
 
 
 if __name__=='__main__':
     webServer = WebServer()
     webServer.start()
+
+    p.start()
     while webServer.running:
         r = readchar.readchar()
         print(r)
         if r == b'q' or r == b'\x03':
-            print('!!!!!!!!!!!')
             webServer.shutdown()
+            p.join(timeout = 1)
+            p.terminate()
         try:
             sleep(0.1)
-            #print('.')
+            print('.')
         except KeyboardInterrupt:
             print('Ctrl+C')
             webServer.shutdown()

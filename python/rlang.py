@@ -42,6 +42,18 @@ def test():
 def test2():
     x = robjects.r('rt(1,1)\n')
     print(x)
+    x = robjects.r('''
+    rt(1,1)
+library('dfphase1')
+set.seed(12345)
+        y <- matrix(rt(100,3),5)
+        y[,20] <- y[,20]+3
+        y[,2] <- y[,2]-2
+   shewhart(y)
+#plot(cars)
+''')
+    time.sleep(2)
+
 
 test2()
 # r.X11()

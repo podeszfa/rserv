@@ -184,7 +184,7 @@ if __name__=='__main__':
     while webServer.running:
         r = readchar.readchar()
         # print(r == b'q')
-        if r == 'q' or r == '\x03':
+        if r == 'q' or r == b'q' or r == '\x03':
             # print('quit')
             webServer.shutdown()
             p.join(timeout = 1)

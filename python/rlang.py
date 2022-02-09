@@ -1,7 +1,8 @@
 import time, subprocess
 import os
+import platform
 
-if not 'R_HOME' in os.environ:
+if platform.system() != 'Darwin' and not 'R_HOME' in os.environ:
     rhome=subprocess.check_output(['r', 'RHOME'], shell=False, stderr=subprocess.PIPE)
     print(rhome.decode('UTF-8'))
     os.environ['R_HOME'] = rhome.decode('UTF-8')

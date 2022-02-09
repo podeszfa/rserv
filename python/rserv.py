@@ -7,13 +7,13 @@ from time import sleep
 import cgi
 import sys, signal
 import readchar
-
+import platform
 
 #import rpy2.robjects
 #.robjects as robjects
 # r = robjects.r
 #robjects = rpy2.robjects
-if not 'R_HOME' in os.environ:
+if platform.system() != 'Darwin' and not 'R_HOME' in os.environ:
     rhome = subprocess.check_output(['r', 'RHOME'], shell=False, stderr=subprocess.PIPE)
     print('R_HOME <- %s' % (rhome.decode('UTF-8')))
     os.environ['R_HOME'] = rhome.decode('UTF-8')
@@ -164,28 +164,28 @@ class MyHandler(BaseHTTPRequestHandler):
         self.print_body(code, ret)
 
 
-def sigterm(a, b):
-    webServer.shutdown()
-    p.join(timeout = 1)
-    p.terminate()
-    sys.exit(0)
-
-signal.signal(signal.SIGTERM, sigterm)
-signal.signal(signal.SIGINT, sigterm)
-
-
 if __name__=='__main__':
     if sys.platform.startswith('win'):
         # On Windows calling this function is necessary.
         multiprocessing.freeze_support()
     webServer = WebServer()
+    def sigterm(a, b):
+        webServer.shutdown()
+        p.join(timeout = 1)
+        p.terminate()
+        sys.exit(0)
+
+    signal.signal(signal.SIGTERM, sigterm)
+    signal.signal(signal.SIGINT, sigterm)
+
     webServer.start()
 
     p.start()
     while webServer.running:
         r = readchar.readchar()
-        print(r)
-        if r == b'q' or r == b'\x03':
+        # print(r == b'q')
+        if r == 'q' or r == '\x03':
+            # print('quit')
             webServer.shutdown()
             p.join(timeout = 1)
             p.terminate()

@@ -13,10 +13,7 @@ import platform
 #.robjects as robjects
 # r = robjects.r
 #robjects = rpy2.robjects
-if platform.system() != 'Darwin' and not 'R_HOME' in os.environ:
-    rhome = subprocess.check_output(['r', 'RHOME'], shell=False, stderr=subprocess.PIPE)
-    print('R_HOME <- %s' % (rhome.decode('UTF-8')))
-    os.environ['R_HOME'] = rhome.decode('UTF-8')
+
 
 
 
@@ -64,24 +61,24 @@ def rlang_proc(q):
     import rpy2.robjects as robjects
     from rpy2.robjects.packages import importr
     grdevices = importr('grDevices')
-    print('rlang initialized, waiting for jobs...')
+    print('rlang initialized, waiting for jobs...', end='\r\n')
+    sys.stdout.flush()
     while True:
         code=q.get()
         grdevices.svg(file="plot_%03d.svg")
         try:
             ret = robjects.r(code)
-            print('ret={}'.format(ret))
+            print('ret={}'.format(ret), end='\r\n')
         except:
-            print("r: '{}' => {}".format(code, sys.exc_info()[1]))
+            print("r: '{}' => {}".format(code, sys.exc_info()[1]), end='\r\n')
             ret = "???"
         q.put(ret)
         #try:
         grdevices.dev_off()
+        sys.stdout.flush()
         #except:
         #    print("{}".format(sys.exc_info()[1]))
 
-q = Queue()
-p = Process(target=rlang_proc, args=(q,))
 
 #test2()
 #th = threading.Thread(target=test2, daemon=True)
@@ -165,9 +162,21 @@ class MyHandler(BaseHTTPRequestHandler):
 
 
 if __name__=='__main__':
-    if sys.platform.startswith('win'):
-        # On Windows calling this function is necessary.
-        multiprocessing.freeze_support()
+    #if sys.platform.startswith('win'):
+    #    # On Windows calling this function is necessary.
+    multiprocessing.freeze_support()
+    
+    if platform.system() != 'Darwin' and not 'R_HOME' in os.environ:
+        rhome = subprocess.check_output(['r', 'RHOME'], shell=False, stderr=subprocess.PIPE)
+        print('R_HOME <- %s' % (rhome.decode('UTF-8')))
+        os.environ['R_HOME'] = rhome.decode('UTF-8')
+    
+    q = Queue()
+    p = Process(target=rlang_proc, args=(q,))
+    p.start()
+
+    #multiprocessing.set_start_method('spawn')
+
     webServer = WebServer()
     def sigterm(a, b):
         webServer.shutdown()
@@ -180,7 +189,6 @@ if __name__=='__main__':
 
     webServer.start()
 
-    p.start()
     while webServer.running:
         r = readchar.readchar()
         # print(r == b'q')

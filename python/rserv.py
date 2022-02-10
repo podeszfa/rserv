@@ -190,7 +190,7 @@ if __name__=='__main__':
     webServer.start()
 
     while webServer.running:
-        r = readchar.readchar(blocking=False).decode()
+        r = readchar.readchar().decode()
         #r='o'
         if r == 'q' or r == '\x03':
             # print('quit')

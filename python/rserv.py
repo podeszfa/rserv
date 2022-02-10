@@ -68,12 +68,49 @@ class CustomProcess(Process):
 # print('  -------   ')
 def rlang_proc(q):
     import rpy2
+    import rpy2.rinterface_lib
     import rpy2.robjects as robjects
     from rpy2.robjects.packages import importr
     #redirect_std()
     print('rlang initialized, waiting for jobs...', end='\r\n')
     # import warnings
     # warnings.warn('TEST')
+    def  my_consoleread(prompt: str) -> str:
+        custom_prompt = '???' + prompt
+        return 'c'
+        #return input(custom_prompt)
+
+    rpy2.rinterface_lib.callbacks.consoleread = my_consoleread
+    
+    buf = []
+    def f(x):
+        # function that append its argument to the list 'buf'
+        print('> {}'.format(x), end='\r\n')
+        buf.append(x)
+
+    # output from the R console will now be appended to the list 'buf'
+    #consolewrite_print_backup = rpy2.rinterface_lib.callbacks.consolewrite_print
+    rpy2.rinterface_lib.callbacks.consolewrite_print = f
+    rpy2.rinterface_lib.callbacks.consolewrite_warnerror = f
+
+    #date = rinterface.baseenv['date']
+    #rprint = rinterface.baseenv['print']
+    #rprint(date())
+
+    # the output is in our list (as defined in the function f above)
+    #print(buf)
+
+    # restore default function
+    # rpy2.rinterface_lib.callbacks.consolewrite_print = consolewrite_print_backup
+
+    #rpy2.rinterface.initr()
+
+    def my_cleanup(saveact, status, runlast):
+        # cancel all attempts to quit R programmatically
+        print("No one can't escape...")
+        q.put('QUIT')
+        return None
+    rpy2.rinterface_lib.callbacks.cleanup = my_cleanup
 
     grdevices = importr('grDevices')
     sys.stdout.flush()
@@ -83,6 +120,7 @@ def rlang_proc(q):
             code=q.get()
         except:
             print("queue error: {}".format(sys.exc_info()[1]), end='\r\n')
+            q.put('queue error')
             continue
 
         grdevices.svg(file="plot_%03d.svg")
@@ -94,7 +132,7 @@ def rlang_proc(q):
                 ret = '{}'.format(ret) #??? rpy2.rinterface_lib.sexp.NULLType
             elif len(ret.slots):
                 k=0
-                for i in ret.slots['names']:
+                for i in ret.slots['names']: # or do_slot('names')
                     print('slot {}={}'.format(i, ret[k]), end='\r\n')
                     k+=1
         except:

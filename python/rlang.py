@@ -19,7 +19,7 @@ def test():
         #CairoWin()
         library('dfphase1')
 
-        svg(filename = "Rplot%03d.svg", onefile = FALSE)
+        #svg(filename = "Rplot%03d.svg", onefile = FALSE)
 
         # A simulated example
         set.seed(12345)
@@ -63,7 +63,7 @@ def test3():
     package_name = "pandas"
     rlib.utils.install_packages(package_name)
 
-test3()
+#test3()
 # r.X11()
 
 # r.layout(r.matrix(robjects.IntVector([1,2,3,2]), nrow=2, ncol=2))

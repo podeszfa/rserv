@@ -165,12 +165,12 @@ if __name__=='__main__':
     #if sys.platform.startswith('win'):
     #    # On Windows calling this function is necessary.
     multiprocessing.freeze_support()
-    
+
     if platform.system() == 'Windows' and not 'R_HOME' in os.environ:
         rhome = subprocess.check_output(['R', 'RHOME'], shell=False, stderr=subprocess.PIPE)
         print('R_HOME <- %s' % (rhome.decode('UTF-8')))
         os.environ['R_HOME'] = rhome.decode('UTF-8')
-    
+
     q = Queue()
     p = Process(target=rlang_proc, args=(q,))
     p.start()
@@ -190,9 +190,9 @@ if __name__=='__main__':
     webServer.start()
 
     while webServer.running:
-        r = readchar.readchar()
-        # print(r == b'q')
-        if r == 'q' or r == b'q' or r == '\x03':
+        r = readchar.readchar(blocking=False).decode()
+        #r='o'
+        if r == 'q' or r == '\x03':
             # print('quit')
             webServer.shutdown()
             p.join(timeout = 1)
@@ -203,6 +203,8 @@ if __name__=='__main__':
         except KeyboardInterrupt:
             print('Ctrl+C')
             webServer.shutdown()
+            p.join(timeout = 1)
+            p.terminate()
 
         #print('Keyboard Interrupt sent.')
         #webServer.shutdown()

@@ -77,6 +77,12 @@ def cost_f(x):
     x1, x2 = x
     return 100 * (x2 - x1 * x1)**2 + (1 - x1)**2
 
+@ri.rternalize
+def quit(v):
+    return True
+
+robjects.globalenv['quit'] = quit
+
 robjects.globalenv['cost_f'] = cost_f
 
 # starting parameters

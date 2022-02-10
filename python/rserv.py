@@ -82,11 +82,11 @@ def rlang_proc(q):
 
     rpy2.rinterface_lib.callbacks.consoleread = my_consoleread
     
-    buf = []
+    #buf = []
     def f(x):
         # function that append its argument to the list 'buf'
         print('> {}'.format(x), end='\r\n')
-        buf.append(x)
+        #buf.append(x)
 
     # output from the R console will now be appended to the list 'buf'
     #consolewrite_print_backup = rpy2.rinterface_lib.callbacks.consolewrite_print
@@ -105,6 +105,12 @@ def rlang_proc(q):
 
     #rpy2.rinterface.initr()
 
+    import rpy2.rinterface as ri
+    
+    @ri.rternalize
+    def quit(v):
+        return 0
+   
     def my_cleanup(saveact, status, runlast):
         # cancel all attempts to quit R programmatically
         print("No one can't escape...")
@@ -116,6 +122,8 @@ def rlang_proc(q):
     sys.stdout.flush()
     while True:
         robjects.globalenv.clear()
+        robjects.globalenv['quit'] = quit
+        robjects.globalenv['q'] = quit
         try:
             code=q.get()
         except:

@@ -63,6 +63,28 @@ def test3():
     package_name = "pandas"
     rlib.utils.install_packages(package_name)
 
+
+from rpy2.robjects.vectors import FloatVector
+from rpy2.robjects.packages import importr
+import rpy2.rinterface as ri
+#stats = importr('stats')
+
+# cost function, callable from R
+@ri.rternalize
+def cost_f(x):
+    # Rosenbrock Banana function as a cost function
+    # (as in the R man page for optim())
+    x1, x2 = x
+    return 100 * (x2 - x1 * x1)**2 + (1 - x1)**2
+
+robjects.globalenv['cost_f'] = cost_f
+
+# starting parameters
+#start_params = FloatVector((-1.2, 1))
+
+# call R's optim() with our cost funtion
+#res = stats.optim(start_params, cost_f)
+
 #test3()
 # r.X11()
 

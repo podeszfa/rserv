@@ -65,7 +65,9 @@ class CustomProcess(Process):
             warnings.simplefilter("ignore")
             return Process.run(self, *args, **kwargs)
 
+# print('  -------   ')
 def rlang_proc(q):
+    import rpy2
     import rpy2.robjects as robjects
     from rpy2.robjects.packages import importr
     #redirect_std()
@@ -77,13 +79,24 @@ def rlang_proc(q):
     sys.stdout.flush()
     while True:
         robjects.globalenv.clear()
-        code=q.get()
+        try:
+            code=q.get()
+        except:
+            print("queue error: {}".format(sys.exc_info()[1]), end='\r\n')
+            continue
+
         grdevices.svg(file="plot_%03d.svg")
         try:
             ret = robjects.r(code)
             print('ret={}'.format(ret), end='\r\n')
-            if not ret:
-                ret = '{}'.format(ret) #???
+            #if not ret:
+            if type(ret) == rpy2.rinterface_lib.sexp.NULLType:
+                ret = '{}'.format(ret) #??? rpy2.rinterface_lib.sexp.NULLType
+            elif len(ret.slots):
+                k=0
+                for i in ret.slots['names']:
+                    print('slot {}={}'.format(i, ret[k]), end='\r\n')
+                    k+=1
         except:
             print("r: '{}' => {}".format(code, sys.exc_info()[1]), end='\r\n')
             ret = "error: {}".format(sys.exc_info()[1])
@@ -154,7 +167,12 @@ class MyHandler(BaseHTTPRequestHandler):
         </form>
         <script>
             const c = document.getElementById('code');
-            document.addEventListener('keydown', e => {{ if (e.code=='Enter' && e.shiftKey) document.forms[0].submit(); }} );
+            document.addEventListener('keydown', e => {{ if (e.code=='Enter' && e.shiftKey) {{
+                    document.forms[0].submit();
+                    e.preventDefault();
+                    e.stopPropagation();
+                }}
+            }} );
             //c.focus()
         </script>""", "utf-8"))
         self.wfile.write(bytes(f'''<pre>code:</pre><pre style="border:1px solid blue; padding:1rem;">{ret}</pre>''', "utf-8"))
@@ -201,9 +219,11 @@ if __name__=='__main__':
 
     webServer = WebServer()
     def sigterm(a, b):
+        print('sigterm')
         webServer.shutdown()
         p.join(timeout = 1)
         p.terminate()
+        time.sleep(1)
         sys.exit(0)
 
     signal.signal(signal.SIGTERM, sigterm)
@@ -212,17 +232,18 @@ if __name__=='__main__':
     webServer.start()
 
     while webServer.running:
-        r = readchar.readchar()
-        if type(r) is bytes: r = r.decode()
-        #r='o'
-        if r == 'q' or r == '\x03':
-            # print('quit')
-            webServer.shutdown()
-            p.join(timeout = 1)
-            p.terminate()
+        if platform.system() != 'Darwin':
+            readchar.readchar()
+            if type(r) is bytes: r = r.decode()
+            #r='o'
+            if r == 'q' or r == '\x03':
+                # print('quit')
+                webServer.shutdown()
+                p.join(timeout = 1)
+                p.terminate()
         try:
             sleep(0.1)
-            print('.')
+            #print('.')
         except KeyboardInterrupt:
             print('Ctrl+C')
             webServer.shutdown()

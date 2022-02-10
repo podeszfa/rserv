@@ -190,7 +190,8 @@ if __name__=='__main__':
     webServer.start()
 
     while webServer.running:
-        r = readchar.readchar().decode()
+        r = readchar.readchar()
+        if type(r) is bytes: r = r.decode()
         #r='o'
         if r == 'q' or r == '\x03':
             # print('quit')

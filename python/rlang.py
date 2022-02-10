@@ -55,8 +55,15 @@ set.seed(12345)
 ''')
     time.sleep(2)
 
+def test3():
+    import rpy2.interactive as r
+    import rpy2.interactive.packages # this can take few seconds
+    rlib = r.packages.packages
+    r.packages.importr("utils")
+    package_name = "pandas"
+    rlib.utils.install_packages(package_name)
 
-test2()
+test3()
 # r.X11()
 
 # r.layout(r.matrix(robjects.IntVector([1,2,3,2]), nrow=2, ncol=2))

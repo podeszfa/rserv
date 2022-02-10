@@ -72,18 +72,23 @@ def rlang_proc(q):
     print('rlang initialized, waiting for jobs...', end='\r\n')
     # import warnings
     # warnings.warn('TEST')
+
     grdevices = importr('grDevices')
     sys.stdout.flush()
     while True:
+        robjects.globalenv.clear()
         code=q.get()
         grdevices.svg(file="plot_%03d.svg")
         try:
             ret = robjects.r(code)
             print('ret={}'.format(ret), end='\r\n')
+            if not ret:
+                ret = '{}'.format(ret) #???
         except:
             print("r: '{}' => {}".format(code, sys.exc_info()[1]), end='\r\n')
-            ret = "???"
+            ret = "error: {}".format(sys.exc_info()[1])
         q.put(ret)
+        print("env={}".format( [x for x in robjects.globalenv] ))
         #try:
         grdevices.dev_off()
         sys.stdout.flush()
@@ -141,12 +146,17 @@ class MyHandler(BaseHTTPRequestHandler):
         <form action="/r" method="POST">
         <div>
             <label for="code">Code:</label><br>
-            <textarea name="code" id="code" value="{code}" rows="10" cols="80" style="padding: 1rem; width: 100%; resize: vertical; min-height:3rem; max-height:100rem;">{code}</textarea>
+            <textarea id="code" autofocus name="code" id="code" value="{code}" rows="10" cols="80" style="padding: 1rem; width: 100%; resize: vertical; min-height:3rem; max-height:100rem;">{code}</textarea>
         </div>
         <div>
             <button>Run code</button>
         </div>
-        </form>""", "utf-8"))
+        </form>
+        <script>
+            const c = document.getElementById('code');
+            document.addEventListener('keydown', e => {{ if (e.code=='Enter' && e.shiftKey) document.forms[0].submit(); }} );
+            //c.focus()
+        </script>""", "utf-8"))
         self.wfile.write(bytes(f'''<pre>code:</pre><pre style="border:1px solid blue; padding:1rem;">{ret}</pre>''', "utf-8"))
         self.wfile.write(bytes("</body></html>", "utf-8"))
 
@@ -164,6 +174,7 @@ class MyHandler(BaseHTTPRequestHandler):
             code = form.getvalue("code")
         except:
             print(sys.exc_info()[1])
+        if code == None: code = ''
         code=code.replace('\r', '')
         q.put(code)
         ret = q.get()

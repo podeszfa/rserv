@@ -128,7 +128,7 @@ def rlang_proc(q):
             code=q.get()
         except:
             print("queue error: {}".format(sys.exc_info()[1]), end='\r\n')
-            q.put('queue error')
+            # q.put('')
             continue
 
         grdevices.svg(file="plot_%03d.svg")

@@ -81,7 +81,7 @@ def rlang_proc(q):
         #return input(custom_prompt)
 
     rpy2.rinterface_lib.callbacks.consoleread = my_consoleread
-    
+
     #buf = []
     def f(x):
         # function that append its argument to the list 'buf'
@@ -106,11 +106,11 @@ def rlang_proc(q):
     #rpy2.rinterface.initr()
 
     import rpy2.rinterface as ri
-    
+
     @ri.rternalize
     def quit(v):
         return 0
-   
+
     def my_cleanup(saveact, status, runlast):
         # cancel all attempts to quit R programmatically
         print("No one can't escape...")
@@ -279,7 +279,7 @@ if __name__=='__main__':
 
     while webServer.running:
         if platform.system() != 'Darwin':
-            readchar.readchar()
+            r = readchar.readchar()
             if type(r) is bytes: r = r.decode()
             #r='o'
             if r == 'q' or r == '\x03':

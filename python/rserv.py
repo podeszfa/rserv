@@ -125,7 +125,7 @@ def rlang_proc(q):
         robjects.globalenv['quit'] = quit
         robjects.globalenv['q'] = quit
         try:
-            code=q.get()
+            code,data=q.get()
         except:
             print("queue error: {}".format(sys.exc_info()[1]), end='\r\n')
             # q.put('')
@@ -133,6 +133,8 @@ def rlang_proc(q):
 
         grdevices.svg(file="plot_%03d.svg")
         try:
+            if data:
+                robjects.globalenv['d'] = robjects.r(data)
             ret = robjects.r(code)
             print('ret={}'.format(ret), end='\r\n')
             #if not ret:
@@ -194,57 +196,120 @@ class MyHandler(BaseHTTPRequestHandler):
             self.send_header("Content-type", "image/x-icon")
             self.end_headers()
             return
+        print(self.path)
+        print(self.headers.get('Accept'))
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         self.end_headers()
         self.print_body("pi")
 
     def print_body(self, code, ret = ""):
-        self.wfile.write(bytes("<html><body><h1>POST Request Received!</h1>", "utf-8"))
+        self.wfile.write(bytes("<html><body><h1>Rserv 0.5</h1>", "utf-8"))
         self.wfile.write(bytes(f"""
+        <style>
+        body {{ font-family: monospace; }}
+        * {{ padding: 0.5rem; }}
+        input {{ width: 100% }}
+        </style>
         <form action="/r" method="POST">
         <div>
+            <label for="data">Data:</label><br>
+            <textarea name="data" id="data" size=30 rows="2" cols="80" style="padding: 1rem; width: 100%; resize: vertical; min-height:2rem; max-height:100rem;">c(0,1,2,3,4,5,6,7,8,9)</textarea><br>
             <label for="code">Code:</label><br>
-            <textarea id="code" autofocus name="code" id="code" value="{code}" rows="10" cols="80" style="padding: 1rem; width: 100%; resize: vertical; min-height:3rem; max-height:100rem;">{code}</textarea>
+            <textarea autofocus name="code" id="code" value="{code}" rows="10" cols="80" style="padding: 1rem; width: 100%; resize: vertical; min-height:3rem; max-height:100rem;">{code}</textarea>
         </div>
         <div>
-            <button>Run code</button>
+            <button>Run code &gt;</button>
         </div>
         </form>
         <script>
             const c = document.getElementById('code');
+
+            const sub_cb = function(e) {{
+                var out = document.getElementById("out"),
+                    data = new FormData(form);
+
+                //data.set("code", "2");
+
+                /*var oReq = new XMLHttpRequest();
+                oReq.open("POST", "/r", true);
+                oReq.onload = function(oEvent) {{
+                    if (oReq.status == 200) {{
+                        out.innerHTML = oReq.responseText; //"Uploaded!";
+                    }} else {{
+                        out.innerHTML = "Error " + oReq.status;
+                    }}
+                }};
+
+                oReq.send(data);*/
+
+                fetch('/r', {{
+                    method: 'POST',
+                    headers: {{
+                        'Accept': 'text/plain'
+                    }},
+                    body: data,
+                }})
+                .then(response => response.text())
+                .then(result => {{
+                    //console.log('Success:', result);
+                    out.innerHTML = result;
+                }})
+                .catch(error => {{
+                    console.error('Error:', error);
+                    out.innerHTML = 'Error: ' + error;
+                }});
+                e.preventDefault();
+            }}
+
             document.addEventListener('keydown', e => {{ if (e.code=='Enter' && e.shiftKey) {{
-                    document.forms[0].submit();
+                    //document.forms[0].submit();
+                    sub_cb(e);
                     e.preventDefault();
                     e.stopPropagation();
                 }}
             }} );
+
+            var form = document.forms[0];
+            form.addEventListener('submit', e => sub_cb(e), false);
+
             //c.focus()
         </script>""", "utf-8"))
-        self.wfile.write(bytes(f'''<pre>code:</pre><pre style="border:1px solid blue; padding:1rem;">{ret}</pre>''', "utf-8"))
+        self.wfile.write(bytes(f'''<pre>code:</pre><pre id="out" style="border:1px solid blue; padding:1rem;">{ret}</pre>''', "utf-8"))
         self.wfile.write(bytes("</body></html>", "utf-8"))
 
     def do_POST(self):
+        print(self.path)
+        accept=self.headers.get('Accept')
         try:
-            self.send_response(200)
-            self.send_header("Content-type", "text/html")
-            self.end_headers()
             form = cgi.FieldStorage(
                 fp=self.rfile,
                 headers=self.headers,
                 environ={'REQUEST_METHOD': 'POST'}
             )
-            print(form.getvalue("code"))
+            data = form.getvalue("data")
             code = form.getvalue("code")
+            print(f'''data: {data}\ncode: {code}''')
         except:
             print(sys.exc_info()[1])
         if code == None: code = ''
+        if data == None: data = ''
         code=code.replace('\r', '')
-        q.put(code)
+        #data=data.replace('\r', '')
+        q.put((code, data))
         ret = q.get()
         print(ret)
 
-        self.print_body(code, ret)
+        if accept=='text/plain':
+            self.send_response(200)
+            self.send_header("Content-type", "text/plain")
+            self.end_headers()
+            self.wfile.write(bytes(str(ret), 'utf-8'))
+        else:
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            self.print_body(code, ret)
 
 
 if __name__=='__main__':

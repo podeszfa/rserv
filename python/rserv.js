@@ -3,7 +3,7 @@ async function rserv(d, code, nocors = false) {
 
   data.set("data", d);
   data.set("code", code);
-  return fetch("http://127.0.0.1:80801/r", {
+  return fetch("http://127.0.0.1:8080/r", {
     method: "POST",
     mode: nocors ? "no-cors" : "cors",
     headers: {

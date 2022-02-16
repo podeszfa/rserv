@@ -1,5 +1,6 @@
-*.svg
+__pycache__/
+*.exe
 *.pdf
 *.png
+*.svg
 build/
-__pycache__/

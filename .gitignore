@@ -2,3 +2,4 @@
 *.pdf
 *.png
 build/
+__pycache__/

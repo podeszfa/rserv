@@ -134,7 +134,10 @@ def rlang_proc(q):
         grdevices.svg(file="plot_%03d.svg")
         try:
             if data:
+                # f=robjects.FloatVector([1, 2, 3])
+                # robjects.DataFrame({"a": f, "b": f})
                 robjects.globalenv['d'] = robjects.r(data)
+
             ret = robjects.r(code)
             print('ret={}'.format(ret), end='\r\n')
             #if not ret:
@@ -200,6 +203,7 @@ class MyHandler(BaseHTTPRequestHandler):
         print(self.headers.get('Accept'))
         self.send_response(200)
         self.send_header("Content-type", "text/html")
+        self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         self.print_body("pi")
 
@@ -207,9 +211,9 @@ class MyHandler(BaseHTTPRequestHandler):
         self.wfile.write(bytes("<html><body><h1>Rserv 0.5</h1>", "utf-8"))
         self.wfile.write(bytes(f"""
         <style>
-        body {{ font-family: monospace; }}
-        * {{ padding: 0.5rem; }}
-        input {{ width: 100% }}
+            body {{ font-family: monospace; }}
+            * {{ padding: 0.5rem; }}
+            input {{ width: 100% }}
         </style>
         <form action="/r" method="POST">
         <div>
@@ -230,18 +234,6 @@ class MyHandler(BaseHTTPRequestHandler):
                     data = new FormData(form);
 
                 //data.set("code", "2");
-
-                /*var oReq = new XMLHttpRequest();
-                oReq.open("POST", "/r", true);
-                oReq.onload = function(oEvent) {{
-                    if (oReq.status == 200) {{
-                        out.innerHTML = oReq.responseText; //"Uploaded!";
-                    }} else {{
-                        out.innerHTML = "Error " + oReq.status;
-                    }}
-                }};
-
-                oReq.send(data);*/
 
                 fetch('/r', {{
                     method: 'POST',
@@ -280,7 +272,17 @@ class MyHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         print(self.path)
+        print('headers: {}'.format(self.headers))
         accept=self.headers.get('Accept')
+
+        origin=str(self.headers.get('Origin'))
+        if self.headers.get('Sec-Fetch-Mode') != 'cors' or not origin.startswith('http://127.0.0.1'):
+            self.send_response(400)
+            self.send_header("Content-type", "text/plain")
+            self.send_header("Access-Control-Allow-Origin", "http://127.0.0.1")
+            self.end_headers()
+            self.wfile.write(bytes("", 'utf-8'))
+            return
         try:
             form = cgi.FieldStorage(
                 fp=self.rfile,
@@ -295,7 +297,7 @@ class MyHandler(BaseHTTPRequestHandler):
         if code == None: code = ''
         if data == None: data = ''
         code=code.replace('\r', '')
-        #data=data.replace('\r', '')
+        data=data.replace('\r', '')
         q.put((code, data))
         ret = q.get()
         print(ret)
@@ -303,11 +305,13 @@ class MyHandler(BaseHTTPRequestHandler):
         if accept=='text/plain':
             self.send_response(200)
             self.send_header("Content-type", "text/plain")
+            self.send_header("Access-Control-Allow-Origin", origin)
             self.end_headers()
             self.wfile.write(bytes(str(ret), 'utf-8'))
         else:
             self.send_response(200)
             self.send_header("Content-type", "text/html")
+            self.send_header("Access-Control-Allow-Origin", origin)
             self.end_headers()
             self.print_body(code, ret)
 

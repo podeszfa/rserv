@@ -114,7 +114,7 @@ def rlang_proc(q):
     def my_cleanup(saveact, status, runlast):
         # cancel all attempts to quit R programmatically
         print("No one can't escape...")
-        q.put('QUIT')
+        q.put(('QUIT',))
         return None
     rpy2.rinterface_lib.callbacks.cleanup = my_cleanup
 
@@ -138,9 +138,11 @@ def rlang_proc(q):
         svgstring = svglite.svgstring(
             width = 5,
             height = 4,
+            bg = "transparent",
             pointsize = 10,
             standalone = False,
-            scaling = 0.7 )
+            scaling = 0.8 )
+        svgstring_output = ""
 
         try:
             if data:
@@ -282,7 +284,7 @@ class MyHandler(BaseHTTPRequestHandler):
 
             //c.focus()
         </script>""", "utf-8"))
-        self.wfile.write(bytes(f'''<pre>code:</pre><pre id="out" style="border:1px solid blue; padding:1rem;">{ret}{plots}</pre>''', "utf-8"))
+        self.wfile.write(bytes(f'''<pre>code:</pre><pre id="out" style="border:1px solid blue; padding:1rem;">{ret}\n\n{plots}</pre>''', "utf-8"))
         self.wfile.write(bytes("</body></html>", "utf-8"))
 
     def do_POST(self):
@@ -316,13 +318,14 @@ class MyHandler(BaseHTTPRequestHandler):
         q.put((code, data))
         ret, plots = q.get()
         print(ret)
-        print('plots: {}'.format(plots))
+        #print('plots: {}'.format(plots))
         if accept=='text/plain':
             self.send_response(200)
             self.send_header("Content-type", "text/plain")
             self.send_header("Access-Control-Allow-Origin", origin)
             self.end_headers()
             self.wfile.write(bytes(str(ret), 'utf-8'))
+            self.wfile.write(bytes('\n\n', 'utf-8'))
             self.wfile.write(bytes(str(plots), 'utf-8'))
         else:
             self.send_response(200)

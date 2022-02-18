@@ -119,6 +119,8 @@ def rlang_proc(q):
     rpy2.rinterface_lib.callbacks.cleanup = my_cleanup
 
     grdevices = importr('grDevices')
+    svglite = importr('svglite')
+
     sys.stdout.flush()
     while True:
         robjects.globalenv.clear()
@@ -131,7 +133,15 @@ def rlang_proc(q):
             # q.put('')
             continue
 
-        grdevices.svg(file="plot_%03d.svg")
+        #grdevices.svg(file="plot_%03d.svg")
+        grdevices.svg(file="plot.svg")
+        svgstring = svglite.svgstring(
+            width = 5,
+            height = 4,
+            pointsize = 10,
+            standalone = False,
+            scaling = 0.7 )
+
         try:
             if data:
                 # f=robjects.FloatVector([1, 2, 3])
@@ -143,15 +153,20 @@ def rlang_proc(q):
             #if not ret:
             if type(ret) == rpy2.rinterface_lib.sexp.NULLType:
                 ret = '{}'.format(ret) #??? rpy2.rinterface_lib.sexp.NULLType
-            elif len(ret.slots):
+            elif 'names' in ret.slots:
                 k=0
+                #print('slots', [x for x in ret.slots])
                 for i in ret.slots['names']: # or do_slot('names')
                     print('slot {}={}'.format(i, ret[k]), end='\r\n')
                     k+=1
+            svgstring_output = svgstring()
         except:
             print("r: '{}' => {}".format(code, sys.exc_info()[1]), end='\r\n')
             ret = "error: {}".format(sys.exc_info()[1])
-        q.put(ret)
+
+        print(svgstring_output) # array n-elements
+        q.put(("{}".format(ret), "{}".format(svgstring_output)))
+        #q.put(ret)
         print("env={}".format( [x for x in robjects.globalenv] ))
         #try:
         grdevices.dev_off()
@@ -207,7 +222,7 @@ class MyHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.print_body("pi")
 
-    def print_body(self, code, ret = ""):
+    def print_body(self, code, ret = "", plots = ""):
         self.wfile.write(bytes("<html><body><h1>Rserv 0.5</h1>", "utf-8"))
         self.wfile.write(bytes(f"""
         <style>
@@ -267,7 +282,7 @@ class MyHandler(BaseHTTPRequestHandler):
 
             //c.focus()
         </script>""", "utf-8"))
-        self.wfile.write(bytes(f'''<pre>code:</pre><pre id="out" style="border:1px solid blue; padding:1rem;">{ret}</pre>''', "utf-8"))
+        self.wfile.write(bytes(f'''<pre>code:</pre><pre id="out" style="border:1px solid blue; padding:1rem;">{ret}{plots}</pre>''', "utf-8"))
         self.wfile.write(bytes("</body></html>", "utf-8"))
 
     def do_POST(self):
@@ -299,21 +314,22 @@ class MyHandler(BaseHTTPRequestHandler):
         code=code.replace('\r', '')
         data=data.replace('\r', '')
         q.put((code, data))
-        ret = q.get()
+        ret, plots = q.get()
         print(ret)
-
+        print('plots: {}'.format(plots))
         if accept=='text/plain':
             self.send_response(200)
             self.send_header("Content-type", "text/plain")
             self.send_header("Access-Control-Allow-Origin", origin)
             self.end_headers()
             self.wfile.write(bytes(str(ret), 'utf-8'))
+            self.wfile.write(bytes(str(plots), 'utf-8'))
         else:
             self.send_response(200)
             self.send_header("Content-type", "text/html")
             self.send_header("Access-Control-Allow-Origin", origin)
             self.end_headers()
-            self.print_body(code, ret)
+            self.print_body(code, ret, plots)
 
 
 if __name__=='__main__':

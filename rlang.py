@@ -3,9 +3,10 @@ import os
 import platform
 
 if platform.system() == 'Windows' and not 'R_HOME' in os.environ:
-    rhome=subprocess.check_output(['R', 'RHOME'], shell=False, stderr=subprocess.PIPE)
-    print(rhome.decode('UTF-8'))
-    os.environ['R_HOME'] = rhome.decode('UTF-8')
+    #rhome=subprocess.check_output(['R', 'RHOME'], shell=False, stderr=subprocess.PIPE)
+    #print(rhome.decode('UTF-8'))
+    from rhome import rhome
+    os.environ['R_HOME'] = rhome()
 
 import rpy2.robjects as robjects
 

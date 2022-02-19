@@ -341,9 +341,10 @@ if __name__=='__main__':
     multiprocessing.freeze_support()
 
     if platform.system() == 'Windows' and not 'R_HOME' in os.environ:
-        rhome = subprocess.check_output(['R', 'RHOME'], shell=False, stderr=subprocess.PIPE)
-        print('R_HOME <- %s' % (rhome.decode('UTF-8')))
-        os.environ['R_HOME'] = rhome.decode('UTF-8')
+        from rhome import rhome
+        rh = rhome()
+        print('R_HOME <- {}'.format(rh))
+        os.environ['R_HOME'] = rh
 
     q = Queue()
     p = Process(target=rlang_proc, args=(q,))

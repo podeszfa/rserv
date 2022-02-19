@@ -68,10 +68,55 @@ class CustomProcess(Process):
 # print('  -------   ')
 def rlang_proc(q):
     import rpy2
-    import rpy2.rinterface_lib
-    import rpy2.robjects as robjects
-    from rpy2.robjects.packages import importr
+    def fix_rpy():
+        # https://github.com/rpy2/rpy2/issues/754
+        import rpy2.rinterface_lib
+        import rpy2.rinterface_lib.conversion
+
+        def _cchar_to_str(c, encoding: str = 'cp1252') -> str:
+            # TODO: use isStrinb and installTrChar
+            s = rpy2.rinterface_lib.openrlib.ffi.string(c).decode(encoding)
+            return s
+
+        def _cchar_to_str_with_maxlen(c, maxlen: int, _) -> str:
+            # TODO: use isStrinb and installTrChar
+            s = rpy2.rinterface_lib.openrlib.ffi.string(c, maxlen).decode('cp1252')
+            return s
+        rpy2.rinterface_lib.conversion._cchar_to_str = _cchar_to_str
+        rpy2.rinterface_lib.conversion._cchar_to_str_with_maxlen = _cchar_to_str_with_maxlen
+
+        import rpy2.robjects as robjects
+        from rpy2.robjects.packages import importr
+
+    fix_rpy()
+
     #redirect_std()
+
+    try:
+        # import rpy2's package module
+        import rpy2.robjects.packages as rpackages
+
+        # import R's utility package
+        utils = rpackages.importr('utils')
+
+        # select a mirror for R packages
+        utils.chooseCRANmirror(ind=1) # select the first mirror in the list
+        # R package names
+        packnames = ('svglite', )
+        # R vector of strings
+        from rpy2.robjects.vectors import StrVector
+        # Selectively install what needs to be install.
+        # We are fancy, just because we can.
+        names_to_install = [x for x in packnames if not rpackages.isinstalled(x)]
+        if len(names_to_install) > 0:
+            print('Install required packages: {}.'.format(names_to_install))
+            try:
+                utils.install_packages(StrVector(names_to_install))
+            except:
+                print('Installation problems')
+    except:
+        print('Installation failed?')
+
     print('rlang initialized, waiting for jobs...', end='\r\n')
     # import warnings
     # warnings.warn('TEST')
@@ -345,6 +390,14 @@ if __name__=='__main__':
         rh = rhome()
         print('R_HOME <- {}'.format(rh))
         os.environ['R_HOME'] = rh
+
+    if platform.system() == 'Windows' and not 'R_LIBS_USER' in os.environ:
+        from pathlib import Path
+        from os import path
+        rhl = path.join(str(Path.home()), 'R')
+        print('R_LIBS_USER <- {}'.format(rhl))
+        os.environ['R_LIBS_USER'] = rhl
+        Path(rhl).mkdir(parents=True, exist_ok=True)
 
     q = Queue()
     p = Process(target=rlang_proc, args=(q,))

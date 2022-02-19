@@ -68,7 +68,9 @@ class CustomProcess(Process):
 # print('  -------   ')
 def rlang_proc(q):
     import rpy2
+
     def fix_rpy():
+        import rpy2.rinterface_lib
         # https://github.com/rpy2/rpy2/issues/754
         import rpy2.rinterface_lib
         import rpy2.rinterface_lib.conversion
@@ -85,10 +87,10 @@ def rlang_proc(q):
         rpy2.rinterface_lib.conversion._cchar_to_str = _cchar_to_str
         rpy2.rinterface_lib.conversion._cchar_to_str_with_maxlen = _cchar_to_str_with_maxlen
 
-        import rpy2.robjects as robjects
-        from rpy2.robjects.packages import importr
-
     fix_rpy()
+
+    import rpy2.robjects as robjects
+    from rpy2.robjects.packages import importr
 
     #redirect_std()
 

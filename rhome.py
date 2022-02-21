@@ -1,4 +1,4 @@
-def rhome():
+def rhome_registry():
     import winreg
 
     aKey = r"SOFTWARE\\R-core"
@@ -18,6 +18,13 @@ def rhome():
             except EnvironmentError:
                 break
         return val
+    try:
+        aKey = winreg.OpenKey(aReg, aKey)
+    except:
+        return
 
-    aKey = winreg.OpenKey(aReg, aKey)
     return find_key(aKey)
+
+def rhome():
+    import rpy2.situation
+    return rpy2.situation.get_r_home() or rhome_registry() or ""

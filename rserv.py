@@ -1,3 +1,4 @@
+from tabnanny import verbose
 import threading
 import time, os, subprocess
 
@@ -92,6 +93,17 @@ def rlang_proc(q):
     import rpy2.robjects as robjects
     from rpy2.robjects.packages import importr
 
+    version = [robjects.r['version'].rx('major')[0][0]] + robjects.r['version'].rx('minor')[0][0].split(sep='.')
+    #version[1] = version[1].split(sep='.')
+    print('R version: {}.{}.{}'.format(version[0], version[1], version[2]))
+    # R_LIBS_USE: Documents/R/win-library/4.1
+    if platform.system() == 'Windows' and not 'R_LIBS_USER' in os.environ:
+        from pathlib import Path
+        from os import path
+        rhl = path.join(str(Path.home()), 'Documents', 'R', 'win-library', '{}.{}'.format(version[0], version[1]))
+        print('R_LIBS_USER <- {}'.format(rhl))
+        os.environ['R_LIBS_USER'] = rhl
+        Path(rhl).mkdir(parents=True, exist_ok=True)
     #redirect_std()
 
     try:
@@ -392,14 +404,6 @@ if __name__=='__main__':
         rh = rhome()
         print('R_HOME <- {}'.format(rh))
         os.environ['R_HOME'] = rh
-
-    if platform.system() == 'Windows' and not 'R_LIBS_USER' in os.environ:
-        from pathlib import Path
-        from os import path
-        rhl = path.join(str(Path.home()), 'R')
-        print('R_LIBS_USER <- {}'.format(rhl))
-        os.environ['R_LIBS_USER'] = rhl
-        Path(rhl).mkdir(parents=True, exist_ok=True)
 
     q = Queue()
     p = Process(target=rlang_proc, args=(q,))

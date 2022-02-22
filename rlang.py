@@ -1,4 +1,4 @@
-import time, subprocess
+﻿import time, subprocess
 import os
 import platform
 
@@ -7,6 +7,25 @@ if platform.system() == 'Windows' and not 'R_HOME' in os.environ:
     #print(rhome.decode('UTF-8'))
     from rhome import rhome
     os.environ['R_HOME'] = rhome()
+
+import rpy2
+import rpy2.rinterface_lib
+# https://github.com/rpy2/rpy2/issues/754
+import rpy2.rinterface_lib
+import rpy2.rinterface_lib.conversion
+
+def _cchar_to_str(c, encoding: str = 'cp1250') -> str:
+    # TODO: use isStrinb and installTrChar
+    s = rpy2.rinterface_lib.openrlib.ffi.string(c).decode(encoding)
+    return s
+
+
+def _cchar_to_str_with_maxlen(c, maxlen: int, _) -> str:
+    # TODO: use isStrinb and installTrChar
+    s = rpy2.rinterface_lib.openrlib.ffi.string(c, maxlen).decode('cp1250')
+    return s
+rpy2.rinterface_lib.conversion._cchar_to_str = _cchar_to_str
+rpy2.rinterface_lib.conversion._cchar_to_str_with_maxlen = _cchar_to_str_with_maxlen
 
 import rpy2.robjects as robjects
 
@@ -85,6 +104,8 @@ def quit(v):
 robjects.globalenv['quit'] = quit
 
 robjects.globalenv['cost_f'] = cost_f
+
+print(r('print("Częstość")'))
 
 # starting parameters
 #start_params = FloatVector((-1.2, 1))

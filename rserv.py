@@ -1,5 +1,5 @@
-import threading
-import time, os, subprocess
+﻿import threading
+import time, os
 
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from time import sleep
@@ -7,32 +7,6 @@ import cgi
 import sys, signal
 import readchar
 import platform
-
-#import rpy2.robjects
-#.robjects as robjects
-# r = robjects.r
-#robjects = rpy2.robjects
-
-
-
-
-
-#grdevices.png(file="path/to/file.png", width=512, height=512)
-#grdevices.png(file="path/to/file.png", width=512, height=512)
-#grdevices.svg(file="plot_%03d.svg")
-# plotting code here
-#grdevices.dev_off()
-
-# def threadFunc():
-#     x = robjects.IntVector(range(10))
-#     y = robjects.r.rnorm(10)
-#     for i in range(100):
-#         print(f'Hello from new Thread {x} {y}')
-#         time.sleep(1)
-#     webServer.shutdown()
-#     sys.exit(0)
-# th = threading.Thread(target=threadFunc, daemon=True)
-# th.start()
 
 import multiprocessing
 
@@ -75,14 +49,14 @@ def rlang_proc(q, qout):
         import rpy2.rinterface_lib
         import rpy2.rinterface_lib.conversion
 
-        def _cchar_to_str(c, encoding: str = 'cp1252') -> str:
+        def _cchar_to_str(c, encoding: str = 'cp1250') -> str:
             # TODO: use isStrinb and installTrChar
             s = rpy2.rinterface_lib.openrlib.ffi.string(c).decode(encoding)
             return s
 
         def _cchar_to_str_with_maxlen(c, maxlen: int, _) -> str:
             # TODO: use isStrinb and installTrChar
-            s = rpy2.rinterface_lib.openrlib.ffi.string(c, maxlen).decode('cp1252')
+            s = rpy2.rinterface_lib.openrlib.ffi.string(c, maxlen).decode('cp1250')
             return s
         rpy2.rinterface_lib.conversion._cchar_to_str = _cchar_to_str
         rpy2.rinterface_lib.conversion._cchar_to_str_with_maxlen = _cchar_to_str_with_maxlen

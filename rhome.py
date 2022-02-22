@@ -1,4 +1,4 @@
-def rhome_registry():
+﻿def rhome_registry():
     import winreg
 
     aKey = r"SOFTWARE\\R-core"

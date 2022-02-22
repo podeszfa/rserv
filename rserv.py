@@ -199,7 +199,10 @@ def rlang_proc(q, qout):
                 k=0
                 #print('slots', [x for x in ret.slots])
                 for i in ret.slots['names']: # or do_slot('names')
-                    print('slot {}={}'.format(i, ret[k]), end='\r\n')
+                    try:
+                        print('slot {}={}'.format(i, ret[k]), end='\r\n')
+                    except:
+                        print("slot error: {}".format(sys.exc_info()[1]))
                     k+=1
             svgstring_output = svgstring()
         except:

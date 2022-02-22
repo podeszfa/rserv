@@ -107,6 +107,26 @@ robjects.globalenv['cost_f'] = cost_f
 
 print(r('print("Częstość")'))
 
+print(r('''
+library(svglite)
+# Libraries
+library(ggplot2)
+library(dplyr)
+
+# Dummy data
+data <- data.frame(
+  day = as.Date("2017-06-14") - 0:364,
+  value = runif(365) + seq(-140, 224)^2 / 10000
+)
+s<-svgstring()
+# Most basic bubble plot
+p <- ggplot(data, aes(x=day, y=value)) +
+  geom_line() +
+  xlab("")
+print(p)
+print(s())
+dev.off()
+'''))
 # starting parameters
 #start_params = FloatVector((-1.2, 1))
 

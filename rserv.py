@@ -153,20 +153,21 @@ def rlang_proc(q, qout):
     grdevices = importr('grDevices')
     svglite = importr('svglite')
 
+    grdevices.svg(file="plot.svg")
+
     sys.stdout.flush()
     while True:
         robjects.globalenv.clear()
         robjects.globalenv['quit'] = quit
         robjects.globalenv['q'] = quit
         try:
-            code, data = q.get()
+            # robjects.r('dev.off(dev.list())') # all, or dev.list()["devSVG"]
+            robjects.r['dev.off']()
         except:
-            print("queue error: {}".format(sys.exc_info()[1]), end='\r\n')
-            # qout.put('')
-            continue
+            print("dev.off: {}".format(sys.exc_info()[1]), end='\r\n')
 
         #grdevices.svg(file="plot_%03d.svg")
-        grdevices.svg(file="plot.svg")
+        #grdevices.svg(file="plot.svg")
         svgstring = svglite.svgstring(
             width = 5,
             height = 4,
@@ -175,6 +176,13 @@ def rlang_proc(q, qout):
             standalone = False,
             scaling = 0.8 )
         svgstring_output = ""
+
+        try:
+            code, data = q.get()
+        except:
+            print("queue error: {}".format(sys.exc_info()[1]), end='\r\n')
+            # qout.put('')
+            continue
 
         try:
             if data:
@@ -202,8 +210,8 @@ def rlang_proc(q, qout):
         qout.put(("{}".format(ret), "{}".format(svgstring_output)))
         #qout.put(ret)
         print("env={}".format( [x for x in robjects.globalenv] ))
-        #try:
-        grdevices.dev_off()
+
+        #grdevices.dev_off()
         sys.stdout.flush()
         #except:
         #    print("{}".format(sys.exc_info()[1]))
@@ -340,7 +348,7 @@ class MyHandler(BaseHTTPRequestHandler):
             )
             data = form.getvalue("data")
             code = form.getvalue("code")
-            print(f'''data:\n{indent(data, "    ")}\ncode:\n{indent(code, "    ")}''')
+            print(f'''data:\n{indent(shorten(data, width=60, placeholder="..."), "    ")}\ncode:\n{indent(code, "    ")}''')
         except:
             print(sys.exc_info()[1])
         if code == None: code = ''

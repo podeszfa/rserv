@@ -11,7 +11,7 @@ import platform
 import multiprocessing
 
 from multiprocessing import Process, Queue
-
+from textwrap import shorten, indent
 
 def test2(q):
     import rpy2.robjects as robjects
@@ -54,7 +54,7 @@ def rlang_proc(q, qout):
             s = rpy2.rinterface_lib.openrlib.ffi.string(c).decode(encoding)
             return s
 
-        def _cchar_to_str_with_maxlen(c, maxlen: int, _) -> str:
+        def _cchar_to_str_with_maxlen(c, maxlen: int, encoding: str) -> str:
             # TODO: use isStrinb and installTrChar
             s = rpy2.rinterface_lib.openrlib.ffi.string(c, maxlen).decode('cp1250')
             return s
@@ -198,7 +198,7 @@ def rlang_proc(q, qout):
             print("r: '{}' => {}".format(code, sys.exc_info()[1]), end='\r\n')
             ret = "error: {}".format(sys.exc_info()[1])
 
-        print(svgstring_output) # array n-elements
+        # print(svgstring_output) # array n-elements
         qout.put(("{}".format(ret), "{}".format(svgstring_output)))
         #qout.put(ret)
         print("env={}".format( [x for x in robjects.globalenv] ))
@@ -340,7 +340,7 @@ class MyHandler(BaseHTTPRequestHandler):
             )
             data = form.getvalue("data")
             code = form.getvalue("code")
-            print(f'''data: {data}\ncode: {code}''')
+            print(f'''data:\n{indent(data, "    ")}\ncode:\n{indent(code, "    ")}''')
         except:
             print(sys.exc_info()[1])
         if code == None: code = ''

@@ -66,7 +66,7 @@ class CustomProcess(Process):
             return Process.run(self, *args, **kwargs)
 
 # print('  -------   ')
-def rlang_proc(q):
+def rlang_proc(q, qout):
     import rpy2
 
     def fix_rpy():
@@ -172,7 +172,7 @@ def rlang_proc(q):
     def my_cleanup(saveact, status, runlast):
         # cancel all attempts to quit R programmatically
         print("No one can't escape...")
-        q.put(('QUIT',))
+        qout.put(('QUIT',))
         return None
     rpy2.rinterface_lib.callbacks.cleanup = my_cleanup
 
@@ -185,10 +185,10 @@ def rlang_proc(q):
         robjects.globalenv['quit'] = quit
         robjects.globalenv['q'] = quit
         try:
-            code,data=q.get()
+            code, data = q.get()
         except:
             print("queue error: {}".format(sys.exc_info()[1]), end='\r\n')
-            # q.put('')
+            # qout.put('')
             continue
 
         #grdevices.svg(file="plot_%03d.svg")
@@ -225,8 +225,8 @@ def rlang_proc(q):
             ret = "error: {}".format(sys.exc_info()[1])
 
         print(svgstring_output) # array n-elements
-        q.put(("{}".format(ret), "{}".format(svgstring_output)))
-        #q.put(ret)
+        qout.put(("{}".format(ret), "{}".format(svgstring_output)))
+        #qout.put(ret)
         print("env={}".format( [x for x in robjects.globalenv] ))
         #try:
         grdevices.dev_off()
@@ -371,10 +371,10 @@ class MyHandler(BaseHTTPRequestHandler):
             print(sys.exc_info()[1])
         if code == None: code = ''
         if data == None: data = ''
-        code=code.replace('\r', '')
-        data=data.replace('\r', '')
+        code = code.replace('\r', '')
+        data = data.replace('\r', '')
         q.put((code, data))
-        ret, plots = q.get()
+        ret, plots = qout.get()
         print(ret)
         #print('plots: {}'.format(plots))
         if accept=='text/plain':
@@ -405,7 +405,8 @@ if __name__=='__main__':
         os.environ['R_HOME'] = rh
 
     q = Queue()
-    p = Process(target=rlang_proc, args=(q,))
+    qout = Queue()
+    p = Process(target=rlang_proc, args=(q, qout))
     p.start()
 
     #multiprocessing.set_start_method('spawn')

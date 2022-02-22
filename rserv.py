@@ -42,6 +42,7 @@ class CustomProcess(Process):
 # print('  -------   ')
 def rlang_proc(q, qout):
     import rpy2
+    import rpy2.robjects as robjects
 
     def fix_rpy():
         import rpy2.rinterface_lib
@@ -61,9 +62,12 @@ def rlang_proc(q, qout):
         rpy2.rinterface_lib.conversion._cchar_to_str = _cchar_to_str
         rpy2.rinterface_lib.conversion._cchar_to_str_with_maxlen = _cchar_to_str_with_maxlen
 
-    fix_rpy()
+    try:
+        if robjects.r('"Łódź"').get_charsxp(0).encoding.name == 'CE_NATIVE':
+            fix_rpy()
+    except:
+        pass
 
-    import rpy2.robjects as robjects
     from rpy2.robjects.packages import importr
 
     version = [robjects.r['version'].rx('major')[0][0]] + robjects.r['version'].rx('minor')[0][0].split(sep='.')

@@ -263,6 +263,28 @@ class MyHandler(BaseHTTPRequestHandler):
             self.send_header("Content-type", "image/x-icon")
             self.end_headers()
             return
+        if self.path == '/license':
+            if getattr(sys, 'frozen', False):
+                license = os.path.join(sys._MEIPASS, "LICENSE")
+            else:
+                license = os.path.join("LICENSE")
+            try:
+                f = open(license, "r")
+            except IOError:
+                self.send_response(404)
+                self.send_header("Content-type", "text/plain")
+                self.end_headers()
+                self.wfile.write(bytes("No license file.", "utf-8"))
+                return
+            else:
+                r = f.read()
+                f.close()
+                self.send_response(200)
+                self.send_header("Content-type", "text/plain")
+                self.end_headers()
+                self.wfile.write(bytes(r, "utf-8"))
+            return
+
         print(self.path)
         print(self.headers.get('Accept'))
         self.send_response(200)
@@ -272,13 +294,16 @@ class MyHandler(BaseHTTPRequestHandler):
         self.print_body("pi")
 
     def print_body(self, code, ret = "", plots = ""):
-        self.wfile.write(bytes("<html><body><h1>Rserv 0.5</h1>", "utf-8"))
+        self.wfile.write(bytes("<html><body>", "utf-8"))
         self.wfile.write(bytes(f"""
         <style>
             body {{ font-family: monospace; }}
             * {{ padding: 0.5rem; }}
             input {{ width: 100% }}
+            a {{ text-decoration: none; font-size: small; }}
         </style>
+        <h1>Rserv 0.7</h1>
+        <a href=/license>Rserv license</a>
         <form action="/r" method="POST">
         <div>
             <label for="data">Data:</label><br>
@@ -287,7 +312,7 @@ class MyHandler(BaseHTTPRequestHandler):
             <textarea autofocus name="code" id="code" value="{code}" rows="10" cols="80" style="padding: 1rem; width: 100%; resize: vertical; min-height:3rem; max-height:100rem;">{code}</textarea>
         </div>
         <div>
-            <button>Run code &gt;</button>
+            <button>Run code &#5125;</button>
         </div>
         </form>
         <script>

@@ -208,11 +208,15 @@ def rlang_proc(q, qout):
                     except:
                         print("slot error: {}".format(sys.exc_info()[1]))
                     k+=1
-            svgstring_output = svgstring()
         except:
             print("r: '{}' => {}".format(code, sys.exc_info()[1]), end='\r\n')
             ret = "error: {}".format(sys.exc_info()[1])
 
+        try:
+            svgstring_output = svgstring()
+        except:
+            svgstring_output = 'Error: svgstring'
+            print('Error: svgstring')
         # print(svgstring_output) # array n-elements
         qout.put(("{}".format(ret), "{}".format(svgstring_output)))
         #qout.put(ret)

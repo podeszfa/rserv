@@ -416,11 +416,25 @@ if __name__=='__main__':
     #    # On Windows calling this function is necessary.
     multiprocessing.freeze_support()
 
+    if 'RHOME' in sys.argv[1:]:
+        from rhome import rhome
+        rh = rhome()
+        print('{}'.format(rh))
+        if not rh:
+            sys.exit(1)
+        sys.exit(0)
+
     if platform.system() == 'Windows' and not 'R_HOME' in os.environ:
         from rhome import rhome
         rh = rhome()
         print('R_HOME <- {}'.format(rh))
         os.environ['R_HOME'] = rh
+
+    import tempfile
+    tempDir = tempfile.TemporaryDirectory(prefix="rserv-", ignore_cleanup_errors=True)
+    print('Temporary directory: {}'.format(tempDir.name))
+    owd = os.getcwd()
+    os.chdir(tempDir.name)
 
     q = Queue()
     qout = Queue()
@@ -436,6 +450,7 @@ if __name__=='__main__':
         p.join(timeout = 1)
         p.terminate()
         time.sleep(1)
+        os.chdir(owd)
         sys.exit(0)
 
     signal.signal(signal.SIGTERM, sigterm)
@@ -453,6 +468,7 @@ if __name__=='__main__':
                 webServer.shutdown()
                 p.join(timeout = 1)
                 p.terminate()
+                os.chdir(owd)
         try:
             sleep(0.1)
             #print('.')
@@ -461,6 +477,7 @@ if __name__=='__main__':
             webServer.shutdown()
             p.join(timeout = 1)
             p.terminate()
+            os.chdir(owd)
 
         #print('Keyboard Interrupt sent.')
         #webServer.shutdown()

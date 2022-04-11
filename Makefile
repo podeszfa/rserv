@@ -1,4 +1,4 @@
-.PHONY: all install clean
+.PHONY: all install clean installer
 
 EXE=
 SEP=:
@@ -11,6 +11,11 @@ all: rserv$(EXE)
 
 rserv$(EXE): requirements.txt rserv.py
 	pyinstaller --distpath . -y --clean --onefile --add-data "LICENSE$(SEP)." --python-option "W ignore" --hidden-import rpy2 rserv.py
+
+rserv-installer.exe: rserv.exe
+	makensis installer.nsi
+
+installer: rserv-installer.exe
 
 requirements.txt:
 	pipreqs --force

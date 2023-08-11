@@ -7,6 +7,7 @@ import cgi
 import sys, signal
 import readchar
 import platform
+import types
 
 import multiprocessing
 
@@ -81,6 +82,13 @@ def rlang_proc(q, qout):
         print('R_LIBS_USER <- {}'.format(rhl))
         os.environ['R_LIBS_USER'] = rhl
         Path(rhl).mkdir(parents=True, exist_ok=True)
+    elif not 'R_LIBS_USER' in os.environ:
+        from pathlib import Path
+        from os import path
+        rhl = path.join(str(Path.home()), 'R', 'library', '{}.{}'.format(version[0], version[1]))
+        print('R_LIBS_USER <- {}'.format(rhl))
+        os.environ['R_LIBS_USER'] = rhl
+        Path(rhl).mkdir(parents=True, exist_ok=True)
     #redirect_std()
 
     try:
@@ -93,7 +101,7 @@ def rlang_proc(q, qout):
         # select a mirror for R packages
         utils.chooseCRANmirror(ind=1) # select the first mirror in the list
         # R package names
-        packnames = ('svglite', )
+        packnames = ('svglite', 'ggplot2', 'dplyr' )
         # R vector of strings
         from rpy2.robjects.vectors import StrVector
         # Selectively install what needs to be install.
@@ -199,6 +207,8 @@ def rlang_proc(q, qout):
             #if not ret:
             if type(ret) == rpy2.rinterface_lib.sexp.NULLType:
                 ret = '{}'.format(ret) #??? rpy2.rinterface_lib.sexp.NULLType
+            if type(ret) is types.NoneType:
+                ret = '{}'
             elif 'names' in ret.slots:
                 k=0
                 #print('slots', [x for x in ret.slots])

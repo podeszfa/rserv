@@ -41,6 +41,18 @@ class CustomProcess(Process):
             return Process.run(self, *args, **kwargs)
 
 # print('  -------   ')
+
+def get_r_libs_dir(version):
+    from pathlib import Path
+    return os.path.join(str(Path.home()), 'R', 'library', version)
+
+def rlang_enviroment_setup():
+    if not 'R_LIBS_USER' in os.environ:
+        rhl = get_r_libs_dir('%v')
+        print('R_LIBS_USER <- {}'.format(rhl))
+        os.environ['R_LIBS_USER'] = rhl
+    return os.environ['R_LIBS_USER']
+
 def rlang_proc(q, qout):
     import rpy2
     import rpy2.robjects as robjects
@@ -70,25 +82,40 @@ def rlang_proc(q, qout):
         pass
 
     from rpy2.robjects.packages import importr
-
+    
     version = [robjects.r['version'].rx('major')[0][0]] + robjects.r['version'].rx('minor')[0][0].split(sep='.')
     #version[1] = version[1].split(sep='.')
     print('R version: {}.{}.{}'.format(version[0], version[1], version[2]))
     # R_LIBS_USE: Documents/R/win-library/4.1
-    if platform.system() == 'Windows' and not 'R_LIBS_USER' in os.environ:
-        from pathlib import Path
-        from os import path
-        rhl = path.join(str(Path.home()), 'Documents', 'R', 'win-library', '{}.{}'.format(version[0], version[1]))
-        print('R_LIBS_USER <- {}'.format(rhl))
-        os.environ['R_LIBS_USER'] = rhl
+    
+    #if 'R_LIBS_USER' in os.environ:
+    from pathlib import Path
+    from os import path
+    try:
+        rhl = os.environ['R_LIBS_USER']
+        print('R_LIBS_USER = {}'.format(rhl))
+        rhl = rhl.replace('%v', '{}.{}'.format(version[0], version[1]))
+        if len(rhl) == 0:
+            raise Exception('Directory error')
         Path(rhl).mkdir(parents=True, exist_ok=True)
-    elif not 'R_LIBS_USER' in os.environ:
-        from pathlib import Path
-        from os import path
-        rhl = path.join(str(Path.home()), 'R', 'library', '{}.{}'.format(version[0], version[1]))
-        print('R_LIBS_USER <- {}'.format(rhl))
-        os.environ['R_LIBS_USER'] = rhl
-        Path(rhl).mkdir(parents=True, exist_ok=True)
+        if os.path.isdir(rhl):
+            raise Exception('Directory not exists')
+    except:
+        rhl = get_r_libs_dir('{}.{}'.format(version[0], version[1]))
+        try:
+            Path(rhl).mkdir(parents=True, exist_ok=True)
+        except:
+            print('Can\'t create directory: {}'.format(rhl))
+    finally:
+        print('Directory for user libs <- {}'.format(rhl))
+    
+    try:
+        robjects.r['.libPaths'](rhl)
+    except:
+        print('.libPaths({}) error'.format(rhl))
+    #else:
+    #    print('Environment variable R_LIBS_USER not set.')
+
     #redirect_std()
 
     try:
@@ -439,6 +466,8 @@ if __name__=='__main__':
         rh = rhome()
         print('R_HOME <- {}'.format(rh))
         os.environ['R_HOME'] = rh
+    
+    rlang_enviroment_setup()
 
     import tempfile
     tempDir = tempfile.TemporaryDirectory(prefix="rserv-", ignore_cleanup_errors=True)

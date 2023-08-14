@@ -2,14 +2,14 @@
 
 EXE=
 SEP=:
+venv=./venv/bin
 ifneq (,$(findstring Windows,$(OS)))
     EXE=.exe
 	SEP=;
+	venv=./venv/Scripts
 endif
 
-venv:=./venv/bin
-
-all: ./venv rserv$(EXE)
+all: rserv$(EXE)
 
 ./venv:
 	@if [ ! -d ./venv ]; then \
@@ -17,7 +17,7 @@ all: ./venv rserv$(EXE)
 	  python -m venv venv && $(MAKE) install || rm -fR ./venv; \
 	fi
 
-rserv$(EXE): rserv.py
+rserv$(EXE): ./venv rserv.py
 	LC_ALL=C $(venv)/pyinstaller --distpath . -y --clean --onefile --add-data "LICENSE$(SEP)." --python-option "W ignore" --hidden-import rpy2 rserv.py
 
 rserv-installer.exe: rserv.exe

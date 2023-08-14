@@ -7,10 +7,18 @@ ifneq (,$(findstring Windows,$(OS)))
 	SEP=;
 endif
 
-all: rserv$(EXE)
+venv:=./venv/bin
 
-rserv$(EXE): requirements.txt rserv.py
-	pyinstaller --distpath . -y --clean --onefile --add-data "LICENSE$(SEP)." --python-option "W ignore" --hidden-import rpy2 rserv.py
+all: ./venv rserv$(EXE)
+
+./venv:
+	@if [ ! -d ./venv ]; then \
+	  echo Installing venv; \
+	  python -m venv venv && $(MAKE) install || rm -fR ./venv; \
+	fi
+
+rserv$(EXE): rserv.py
+	LC_ALL=C $(venv)/pyinstaller --distpath . -y --clean --onefile --add-data "LICENSE$(SEP)." --python-option "W ignore" --hidden-import rpy2 rserv.py
 
 rserv-installer.exe: rserv.exe
 	makensis installer.nsi
@@ -18,11 +26,15 @@ rserv-installer.exe: rserv.exe
 installer: rserv-installer.exe
 
 requirements.txt:
-	pipreqs --force
+	$(venv)/pipreqs --force
 
 clean:
-	@rm -fR build dist __pycache__ requirements.txt rserv$(EXE) rserv.spec
+	@rm -fR build dist __pycache__ rserv$(EXE) rserv.spec venv
 
-install:
-	python -m pip install pipreqs
-	python -m pip install pyinstaller
+install: ./venv
+	$(venv)/python -m pip install pipreqs
+	$(venv)/python -m pip install pyinstaller
+	$(MAKE) requirements.txt
+	$(venv)/python -m pip install -r requirements.txt
+
+

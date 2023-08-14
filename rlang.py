@@ -1,4 +1,4 @@
-﻿import time, subprocess
+import time, subprocess
 import os
 import platform
 

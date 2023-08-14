@@ -1,4 +1,4 @@
-﻿import threading
+import threading
 import time, os
 
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
